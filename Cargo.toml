@@ -1,0 +1,14 @@
+[package]
+name = "chip8"
+version = "0.1.0"
+edition = "2024"
+build = "build.rs"
+
+[dependencies]
+slint = "1.8.0"
+rand = "0.8"
+rfd = "0.14"
+dirs = "5.0"
+
+[build-dependencies]
+slint-build = "1.8.0"

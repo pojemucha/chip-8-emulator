@@ -1,0 +1,12 @@
+# Rust & Cargo
+/target/
+**/*.rs.bk
+
+# Slint
+*.slint.rs
+
+# Environment & IDE
+.env
+.vscode/
+.idea/
+.DS_Store
