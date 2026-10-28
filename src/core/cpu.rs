@@ -1,3 +1,5 @@
+use std::io;
+
 const FONTSET: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -16,6 +18,8 @@ const FONTSET: [u8; 80] = [
     0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
     0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 ];
+
+const MAX_ALLOWED_SIZE: usize = 3584;
 
 struct Cpu {
     memory: [u8; 4096],
@@ -40,5 +44,19 @@ impl Cpu {
         chip8.memory[0x050..0x0A0].copy_from_slice(&FONTSET);
 
         chip8
+    }
+
+    pub fn load_rom(&mut self, buffer: &[u8]) -> io::Result<()> {
+        let buffer_size = buffer.len();
+        
+        if buffer_size > MAX_ALLOWED_SIZE {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("ROM is too large ({} byte), max: {} byte", buffer_size, MAX_ALLOWED_SIZE)
+            ));
+        }
+        
+        self.memory[0x200..0x200 + buffer_size].copy_from_slice(buffer);
+        Ok(())
     }
 }
