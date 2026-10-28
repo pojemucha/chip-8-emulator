@@ -5,6 +5,18 @@ The documentation is based on [Keep a changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+## [0.2.0]
+
+### Added
+- CPU core architecture including 4KB memory, registers (V0-VF, I, PC), and stack
+- ROM loader function with memory boundary check to prevent stack overflow
+- ROM loading, font layout and memory boundary test
+- Hooked up the core module to the main
+- cpu.rs temporary disabled dead_code warnings to prevent CI/CD fail
+
+### Changed
+- main.rs hooked core module
+
 ## [0.1.0]
 
 ### Added
