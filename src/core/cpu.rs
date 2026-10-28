@@ -60,3 +60,33 @@ impl Cpu {
         Ok(())
     }
 }
+
+#[cfg(test)] 
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fontset_loading() {
+        let chip8 = Cpu::new();
+        
+        assert_eq!(&chip8.memory[0x050..0x0A0], &FONTSET);
+    }
+
+    #[test]
+    fn test_rom_loading() {
+        let rom: [u8; 3] = [0x11, 0x22, 0x33];
+        let mut chip8 = Cpu::new();
+
+        chip8.load_rom(&rom).unwrap();
+
+        assert_eq!(&chip8.memory[0x200..0x200 + 3], &rom);
+    }
+
+    #[test]
+    fn test_rom_too_large() {
+        let rom = [0; MAX_ALLOWED_SIZE + 1];
+        let mut chip8 = Cpu::new();
+
+        assert!(chip8.load_rom(&rom).is_err());
+    }
+}
