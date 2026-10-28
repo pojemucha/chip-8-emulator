@@ -1,15 +1,14 @@
+use slint::{ModelRc, SharedString, VecModel};
 use std::rc::Rc;
-use slint::{ModelRc, VecModel, SharedString};
 
 slint::include_modules!();
 
 pub struct App {
     ui: MainWindow,
     //emu: Rc<RefCell<core::Emulaor>>,
-
     _games_model: Rc<VecModel<GameEntry>>,
 }
- impl App {
+impl App {
     pub fn new() -> Result<Self, slint::PlatformError> {
         let ui = MainWindow::new()?;
 
@@ -55,7 +54,7 @@ pub struct App {
             }
         });
 
-        Ok(Self{
+        Ok(Self {
             ui,
             _games_model: games_model,
         })
@@ -64,4 +63,4 @@ pub struct App {
     pub fn run(self) -> Result<(), slint::PlatformError> {
         self.ui.run()
     }
- }
+}
