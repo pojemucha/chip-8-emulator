@@ -1,0 +1,47 @@
+export component GameCard inherits Rectangle {
+    in property <string> title;
+    in property <string> size;
+    in property <image> icon;
+
+    callback clicked;
+
+    border-radius: 8px;
+    background: #313244;
+
+    min-width: 160px;
+    min-height: 200px;
+
+    VerticalLayout {
+        padding: 12px;
+        spacing: 8px;
+
+        Rectangle {
+            height: 100px;
+            background: #45475a;
+            border-radius: 4px;
+            Image {
+                source: root.icon;
+                image-fit: contain;
+            }
+        }
+
+        Text {
+            text: root.title;
+            color: #cdd6f4;
+            font-size: 14px;
+            overflow: elide;
+            horizontal-alignment: left;
+        }
+
+        Text {
+            text: root.size;
+            color: #6c7086;
+            font-size: 11px;
+            horizontal-alignment: left;
+        }
+    }
+
+    area := TouchArea {
+        clicked => { root.clicked();}
+    }
+}
