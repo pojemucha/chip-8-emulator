@@ -1,0 +1,32 @@
+import { GameCard } from "GameCard.slint";
+
+export struct GameEntry {
+    title: string,
+    size: string,
+    icon: image,
+}
+
+export component LauncherView inherits Rectangle {
+    in property <[GameEntry]> games;
+    callback game-selected(string);
+
+    Flickable {
+        content-width: self.width;
+        content-height: layout.preferred-height;
+
+        layout := FlexboxLayout {
+            spacing: 16px;
+            padding: 16px;
+            flex-wrap: wrap;
+
+            for game in root.games: GameCard {
+                title: game.title;
+                size: game.size;
+                icon: game.icon;
+                width: 180px;
+                height: 220px;
+                clicked => { root.game-selected(game.title); }
+            }
+        }
+    }
+}
