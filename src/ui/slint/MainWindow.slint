@@ -1,0 +1,66 @@
+import {LauncherView, GameEntry} from "LauncherView.slint";
+import {EmulatorView} from "EmulatorView.slint";
+
+export component MainWindow inherits Window {
+    preferred-width: 800px;
+    preferred-height: 600px;
+    min-width: 480px;
+    min-height: 360px;
+    background: #1e1e2e;
+
+    in-out property <bool> in-game: false;
+
+    in property <[GameEntry]> games;
+
+    callback settings-clicked;
+    callback game-selected(string);
+    callback back-to-launcher;
+
+    VerticalLayout {
+        Rectangle {
+            height: 48px;
+            background: #2a2a3e;
+
+            HorizontalLayout {
+                padding-left: 16px;
+                padding-right: 16px;
+                alignment: space-between;
+
+                Text {
+                    text: "Chip-8 Emulator";
+                    color: #cdd6f4;
+                    font-size: 16px;
+                    vertical-alignment: center;
+                }
+
+                Rectangle {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 4px;
+                    background: touch.has-hover ? #45475a : #313244;
+
+                    Text {
+                        text: "⚙";
+                        color: #cdd6f4;
+                        font-size: 16px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+
+                    touch := TouchArea {
+                        clicked => { root.settings-clicked(); }
+                    }
+                }
+            }
+        }
+        Rectangle {
+            if !root.in-game: LauncherView{
+                games: root.games;
+                game-selected(title) => {root.game-selected(title);}
+            }
+            if root.in-game: EmulatorView {
+                back-to-launcher => {root.back-to-launcher();}
+            }
+        }
+    }
+}

@@ -1,0 +1,36 @@
+export component EmulatorView inherits Rectangle {
+    background: #11111b;
+
+    callback back-to-launcher;
+
+    VerticalLayout {
+        alignment: center;
+        spacing: 12px;
+
+        Text {
+            text: "Emulator running...";
+            color: #cdd6f4;
+            font-size: 18px;
+            horizontal-alignment: center;
+        }
+
+        // Кнопка: Rectangle + Text + TouchArea
+        Rectangle {
+            width: 160px;
+            height: 36px;
+            border-radius: 4px;
+            background: touch.has-hover ? #45475a : #313244;
+
+            Text {
+                text: "Back to Library";
+                color: #cdd6f4;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+
+            touch := TouchArea {
+                clicked => { root.back-to-launcher(); }
+            }
+        }
+    }
+}
