@@ -5,6 +5,16 @@ The documentation is based on [Keep a changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+## [0.4.0]
+
+### Added
+- Fetch-decode-execute cycle.
+- Fetch: Implemented combining two 8-bit bytes into 16-bit instruction.
+- Decode: Reads instructions and parses them into individual nibbles ('opcode', 'x', 'y', 'n', 'nn', 'nnn').
+- Execute: Performs operations based on the decoded instruction.
+- Tick: Steps through the cycles with a safe boundary checks.
+- Tests: Unit tests verifying subroutine jumps, conditional skips, and out-of-bounds error handling.
+
 ## [0.3.0]
 
 ### Added
@@ -14,6 +24,9 @@ The documentation is based on [Keep a changelog](https://keepachangelog.com/en/1
 - Designed a game card item with an icon placeholder, title, file size display, and click event handling.
 - Added a placeholder screen for the active game state, complete with a button to return to the library launcher.
 - Populated the [GameEntry] model with mock data and wired up callbacks for game-selected, back-to-launcher, and settings-clicked events.
+
+### Changed
+- main.rs hooked up ui module.
 
 ## [0.2.0]
 
