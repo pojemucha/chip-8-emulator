@@ -5,6 +5,16 @@ The documentation is based on [Keep a changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+## [0.3.0]
+
+### Added
+- Included a header bar featuring the application title and a settings button.
+- Implemented adaptive layout behavior with view switching toggled via the in-game property.
+- Created a flexible game library layout utilizing FlexboxLayout
+- Designed a game card item with an icon placeholder, title, file size display, and click event handling.
+- Added a placeholder screen for the active game state, complete with a button to return to the library launcher.
+- Populated the [GameEntry] model with mock data and wired up callbacks for game-selected, back-to-launcher, and settings-clicked events.
+
 ## [0.2.0]
 
 ### Added
