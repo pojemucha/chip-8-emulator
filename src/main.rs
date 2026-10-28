@@ -1,3 +1,5 @@
+pub mod core;
+
 slint::include_modules!();
 
 fn main() -> Result<(), slint::PlatformError> {
