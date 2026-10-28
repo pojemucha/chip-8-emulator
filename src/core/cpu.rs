@@ -1,0 +1,99 @@
+use std::io;
+
+#[allow(dead_code)]
+const FONTSET: [u8; 80] = [
+    0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+    0x20, 0x60, 0x20, 0x20, 0x70, // 1
+    0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+    0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+    0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+    0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+    0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+    0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+    0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+    0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+    0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+    0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+    0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+    0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+    0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+    0xF0, 0x80, 0xF0, 0x80, 0x80, // F
+];
+
+#[allow(dead_code)]
+const MAX_ALLOWED_SIZE: usize = 3584;
+
+#[allow(dead_code)]
+struct Cpu {
+    memory: [u8; 4096],
+    v: [u8; 16],
+    i: u16,
+    pc: u16,
+    stack: [u16; 16],
+    sp: usize,
+}
+
+#[allow(dead_code)]
+impl Cpu {
+    pub fn new() -> Self {
+        let mut chip8 = Self {
+            memory: [0; 4096],
+            v: [0; 16],
+            i: 0,
+            pc: 0x200,
+            stack: [0; 16],
+            sp: 0,
+        };
+
+        chip8.memory[0x050..0x0A0].copy_from_slice(&FONTSET);
+
+        chip8
+    }
+
+    pub fn load_rom(&mut self, buffer: &[u8]) -> io::Result<()> {
+        let buffer_size = buffer.len();
+
+        if buffer_size > MAX_ALLOWED_SIZE {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "ROM is too large ({} byte), max: {} byte",
+                    buffer_size, MAX_ALLOWED_SIZE
+                ),
+            ));
+        }
+
+        self.memory[0x200..0x200 + buffer_size].copy_from_slice(buffer);
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fontset_loading() {
+        let chip8 = Cpu::new();
+
+        assert_eq!(&chip8.memory[0x050..0x0A0], &FONTSET);
+    }
+
+    #[test]
+    fn test_rom_loading() {
+        let rom: [u8; 3] = [0x11, 0x22, 0x33];
+        let mut chip8 = Cpu::new();
+
+        chip8.load_rom(&rom).unwrap();
+
+        assert_eq!(&chip8.memory[0x200..0x200 + 3], &rom);
+    }
+
+    #[test]
+    fn test_rom_too_large() {
+        let rom = [0; MAX_ALLOWED_SIZE + 1];
+        let mut chip8 = Cpu::new();
+
+        assert!(chip8.load_rom(&rom).is_err());
+    }
+}
