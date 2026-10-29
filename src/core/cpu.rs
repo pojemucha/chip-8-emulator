@@ -1,5 +1,7 @@
 use std::io;
 
+use rand::Rng;
+
 #[allow(dead_code)]
 const FONTSET: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -119,6 +121,7 @@ impl Cpu {
                 self.sp -= 1;
                 self.pc = self.stack[self.sp];
             }
+
             // Skip conditionally
             // 3XNN
             (0x3, _, _, _) => {
@@ -152,6 +155,85 @@ impl Cpu {
             (0x7, _, _, _) => {
                 self.v[x as usize] = self.v[x as usize].wrapping_add(nn);
             }
+
+            // Logic and arithmetic
+            // Set (8XY0)
+            (0x8, _, _, 0x0) => {
+                self.v[x as usize] = self.v[y as usize];
+            }
+            // Binary OR (8XY1)
+            (0x8, _, _, 0x1) => {
+                self.v[x as usize] |= self.v[y as usize];
+            }
+            // Binary AND (8XY2)
+            (0x8, _, _, 0x2) => {
+                self.v[x as usize] &= self.v[y as usize];
+            }
+            // Logical XOR (8XY3)
+            (0x8, _, _, 0x3) => {
+                self.v[x as usize] ^= self.v[y as usize];
+            }
+            // Add (8XY4)
+            (0x8, _, _, 0x4) => {
+                (self.v[x as usize], self.v[0xF]) = {
+                    let (res, overflow) = self.v[x as usize].overflowing_add(self.v[y as usize]);
+                    (res, overflow as u8)
+                }
+            }
+            // Substract (8XY5) [vx - vy]
+            (0x8, _, _, 0x5) => {
+                (self.v[x as usize], self.v[0xF]) = {
+                    let (res, overflow) = self.v[x as usize].overflowing_sub(self.v[y as usize]);
+                    (res, !overflow as u8)
+                }
+            }
+            // Shift (8XY6) [right]
+            (0x8, _, _, 0x6) => {
+                let dropped_bit = self.v[x as usize] & 1;
+
+                self.v[x as usize] >>= 1;
+
+                if dropped_bit != 0 {
+                    self.v[0xF] = 1;
+                } else {
+                    self.v[0xF] = 0;
+                }
+            }
+            // Substruct (8XY7) [vy - vx]
+            (0x8, _, _, 0x7) => {
+                (self.v[x as usize], self.v[0xF]) = {
+                    let (res, overflow) = self.v[y as usize].overflowing_sub(self.v[x as usize]);
+                    (res, !overflow as u8)
+                }
+            }
+            // Shift (8XYE) [left]
+            (0x8, _, _, 0xE) => {
+                let dropped_bit: u8 = (self.v[x as usize] >> 7) & 1;
+
+                self.v[x as usize] <<= 1;
+
+                if dropped_bit != 0 {
+                    self.v[0xF] = 1;
+                } else {
+                    self.v[0xF] = 0;
+                }
+            }
+            // Set index (ANNN)
+            (0xA, _, _, _) => {
+                self.i = nnn;
+            }
+            // Jump with offset (BNNN)
+            (0xB, _, _, _) => {
+                self.pc = nnn + (self.v[0x0] as u16);
+            }
+            // Random (CXNN)
+            (0xC, _, _, _) => {
+                let mut rng = rand::thread_rng();
+                let random_byte: u8 = rng.gen_range(0..=255);
+
+                self.v[x as usize] = nn & random_byte;
+            }
+
             // Drawing
             // Clear screen (00E0)
             (0x0, 0x0, 0xE, 0x0) => {
@@ -191,6 +273,7 @@ impl Cpu {
                     }
                 }
             }
+
             // Timers
             // FX07
             (0xF, _, 0x0, 0x7) => {
@@ -218,6 +301,10 @@ impl Cpu {
                 }
             }
 
+            // Add to index (FX1E)
+            (0xF, _, 0x1, 0xE) => {
+                self.i = (self.i + self.v[x as usize] as u16) & 0x0FFF;
+            }
             // Get key (FX0A)
             (0xF, _, 0x0, 0xA) => {
                 for i in 0..=0xF {
@@ -229,6 +316,36 @@ impl Cpu {
 
                 self.pc -= 2;
             }
+            // Font character (FX29)
+            (0xF, _, 0x2, 0x9) => {
+                self.i = 0x050 + (self.v[x as usize] as u16) * 5;
+            }
+            // Binary-coded decimal conversion (FX33)
+            (0xF, _, 0x3, 0x3) => {
+                let vx: u8 = self.v[x as usize];
+                self.memory[self.i as usize] = vx / 100;
+                self.memory[(self.i + 1) as usize] = (vx % 100) / 10;
+                self.memory[(self.i + 2) as usize] = vx % 10;
+            }
+
+            // Store and load memory
+            // FX55
+            (0xF, _, 0x5, 0x5) => {
+                for i in 0..=x {
+                    self.memory[(self.i + i as u16) as usize] = self.v[i as usize];
+                }
+
+                self.i += (x + 1) as u16;
+            }
+            // FX65
+            (0xF, _, 0x6, 0x5) => {
+                for i in 0..=x {
+                    self.v[i as usize] = self.memory[(self.i + i as u16) as usize];
+                }
+
+                self.i += (x + 1) as u16;
+            }
+
             (_, _, _, _) => (),
         }
     }
@@ -358,5 +475,44 @@ mod tests {
         assert!(chip8.tick().is_ok());
         assert_eq!(chip8.v[3], 0x5);
         assert_eq!(chip8.pc, 0x200 + 2);
+    }
+
+    #[test]
+    fn test_math_add_with_carry() {
+        let mut chip8 = Cpu::new();
+
+        chip8.v[0x0] = 254;
+        chip8.v[0x1] = 1;
+
+        let (opcode, x, y, n, nn, nnn) = chip8.decode(0x8014);
+        chip8.execute(opcode, x, y, n, nn, nnn);
+
+        assert_eq!(chip8.v[0x0], 255);
+        assert_eq!(chip8.v[0x1], 1);
+        assert_eq!(chip8.v[0xF], 0);
+
+        chip8.execute(opcode, x, y, n, nn, nnn);
+
+        assert_eq!(chip8.v[0x0], 0);
+        assert_eq!(chip8.v[0x1], 1);
+        assert_eq!(chip8.v[0xF], 1);
+    }
+
+    #[test]
+    fn test_decimal_conversion() {
+        let mut chip8 = Cpu::new();
+
+        chip8.v[0x0] = 156;
+        chip8.i = 0x200;
+
+        let (opcode, x, y, n, nn, nnn) = chip8.decode(0xF033);
+        chip8.execute(opcode, x, y, n, nn, nnn);
+
+        assert_eq!(chip8.i, 0x200);
+        assert_eq!(chip8.v[x as usize], 156);
+        assert_eq!(
+            &chip8.memory[(chip8.i as usize)..(chip8.i + 3) as usize],
+            &[1, 5, 6]
+        );
     }
 }
