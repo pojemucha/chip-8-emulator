@@ -1,5 +1,7 @@
-use slint::{Color, ModelRc, SharedString, VecModel};
+use slint::{Color, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, VecModel};
+use std::cell::RefCell;
 use std::rc::Rc;
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -84,9 +86,53 @@ fn rgb_from_color(c: Color) -> [u8; 3] {
     [c.red(), c.green(), c.blue()]
 }
 
+fn convert_framebuffer(
+    buf: &[[bool; 64]; 32],
+    fg: [u8; 3],
+    bg: [u8; 3],
+    scale: u32,
+) -> slint::Image {
+    let w = 64 * scale;
+    let h = 32 * scale;
+    let mut pb = SharedPixelBuffer::<Rgba8Pixel>::new(w, h);
+    let slice = pb.make_mut_slice();
+
+    for y in 0..h {
+        for x in 0..w {
+            let px = (x / scale) as usize;
+            let py = (y / scale) as usize;
+            let (r, g, b) = if buf[py][px] {
+                (fg[0], fg[1], fg[2])
+            } else {
+                (bg[0], bg[1], bg[2])
+            };
+            slice[(y * w + x) as usize] = Rgba8Pixel { r, g, b, a: 255 };
+        }
+    }
+    slint::Image::from_rgba8(pb)
+}
+
+fn dummy_framebuffer() -> [[bool; 64]; 32] {
+    let mut buf = [[false; 64]; 32];
+
+    for cell in buf[0].iter_mut() {
+        *cell = true;
+    }
+    for cell in buf[31].iter_mut() {
+        *cell = true;
+    }
+    for row in buf.iter_mut() {
+        row[0] = true;
+        row[63] = true;
+    }
+
+    buf
+}
+
 pub struct App {
     ui: MainWindow,
     _games_model: Rc<VecModel<GameEntry>>,
+    _timer: slint::Timer,
 }
 
 impl App {
@@ -112,6 +158,8 @@ impl App {
         ui.set_settings_clock(config.settings.clock_frequency as i32);
         ui.set_settings_fg(color_from_rgb(config.settings.fg_color));
         ui.set_settings_bg(color_from_rgb(config.settings.bg_color));
+
+        let shared_settings = Rc::new(RefCell::new(config.settings.clone()));
 
         ui.on_extract_rom_path(|transfer| {
             if let Ok(mut paths) = transfer.file_paths()
@@ -167,20 +215,39 @@ impl App {
 
         ui.on_settings_clicked({
             let ui_weak = ui.as_weak();
+            let shared = shared_settings.clone();
             move || {
-                ui_weak.unwrap().set_show_settings(true);
+                // Перед открытием модалки синхронизируем её свойства
+                // из актуальных настроек, чтобы слайдеры показывали верные значения
+                if let Some(ui) = ui_weak.upgrade() {
+                    let s = shared.borrow();
+                    ui.set_settings_clock(s.clock_frequency as i32);
+                    ui.set_settings_fg(color_from_rgb(s.fg_color));
+                    ui.set_settings_bg(color_from_rgb(s.bg_color));
+                    ui.set_show_settings(true);
+                }
             }
         });
 
         ui.on_save_settings({
             let ui_weak = ui.as_weak();
+            let shared = shared_settings.clone();
             let mut cfg = config.clone();
             move |freq, fg, bg| {
                 let clamped = freq.clamp(200, 1200);
+                let fg_rgb = rgb_from_color(fg);
+                let bg_rgb = rgb_from_color(bg);
+
                 cfg.settings.clock_frequency = clamped as u32;
-                cfg.settings.fg_color = rgb_from_color(fg);
-                cfg.settings.bg_color = rgb_from_color(bg);
+                cfg.settings.fg_color = fg_rgb;
+                cfg.settings.bg_color = bg_rgb;
                 let _ = cfg.save();
+
+                let mut s = shared.borrow_mut();
+                s.clock_frequency = clamped as u32;
+                s.fg_color = fg_rgb;
+                s.bg_color = bg_rgb;
+                drop(s);
 
                 if let Some(ui) = ui_weak.upgrade() {
                     ui.set_settings_clock(clamped);
@@ -204,9 +271,26 @@ impl App {
             }
         });
 
+        let ui_weak = ui.as_weak();
+        let shared_for_timer = shared_settings.clone();
+        let timer = slint::Timer::default();
+        timer.start(
+            slint::TimerMode::Repeated,
+            Duration::from_millis(16),
+            move || {
+                let s = shared_for_timer.borrow().clone();
+                let buf = dummy_framebuffer();
+                let image = convert_framebuffer(&buf, s.fg_color, s.bg_color, 4);
+                if let Some(ui) = ui_weak.upgrade() {
+                    ui.set_screen(image);
+                }
+            },
+        );
+
         Ok(Self {
             ui,
             _games_model: games_model,
+            _timer: timer,
         })
     }
 
