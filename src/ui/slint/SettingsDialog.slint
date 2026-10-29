@@ -8,10 +8,17 @@ export component SettingsDialog inherits Rectangle {
     callback save-settings(int, color, color);
     callback cancel-settings();
 
-    width: 420px;
-    height: 420px;
+    width: 480px;
+    height: 460px;
     border-radius: 8px;
     background: #2a2a3e;
+
+    property <[color]> palette: [
+        #000000, #1d2b53, #7e2553, #008751,
+        #ab5236, #5f574f, #c2c3c7, #fff1e8,
+        #ff004d, #ffa300, #ffec27, #00e436,
+        #29adff, #83769c, #ff77a8,
+    ];
 
     VerticalLayout {
         padding: 20px;
@@ -40,142 +47,46 @@ export component SettingsDialog inherits Rectangle {
         }
 
         VerticalLayout {
-            spacing: 4px;
+            spacing: 6px;
             Text {
                 text: "Active Pixel Color";
                 color: #cdd6f4;
                 font-size: 14px;
             }
             HorizontalLayout {
-                spacing: 8px;
-
-                Rectangle {
-                    width: 40px;
-                    height: 40px;
-                    background: root.fg-color;
+                spacing: 6px;
+                for c in root.palette: Rectangle {
+                    width: 24px;
+                    height: 24px;
                     border-radius: 4px;
-                    border-width: 1px;
-                    border-color: #585b70;
-                }
-
-                VerticalLayout {
-                    spacing: 2px;
-
-                    HorizontalLayout {
-                        spacing: 4px;
-                        Text { text: "R"; color: #f38ba8; font-size: 12px; vertical-alignment: center; width: 12px; }
-                        Slider {
-                            minimum: 0; maximum: 255;
-                            value: root.fg-color.red * 255;
-                            changed => {
-                                root.fg-color = rgb(
-                                    self.value,
-                                    round(root.fg-color.green * 255),
-                                    round(root.fg-color.blue * 255)
-                                );
-                            }
-                        }
-                    }
-                    HorizontalLayout {
-                        spacing: 4px;
-                        Text { text: "G"; color: #a6e3a1; font-size: 12px; vertical-alignment: center; width: 12px; }
-                        Slider {
-                            minimum: 0; maximum: 255;
-                            value: root.fg-color.green * 255;
-                            changed => {
-                                root.fg-color = rgb(
-                                    round(root.fg-color.red * 255),
-                                    self.value,
-                                    round(root.fg-color.blue * 255)
-                                );
-                            }
-                        }
-                    }
-                    HorizontalLayout {
-                        spacing: 4px;
-                        Text { text: "B"; color: #89b4fa; font-size: 12px; vertical-alignment: center; width: 12px; }
-                        Slider {
-                            minimum: 0; maximum: 255;
-                            value: root.fg-color.blue * 255;
-                            changed => {
-                                root.fg-color = rgb(
-                                    round(root.fg-color.red * 255),
-                                    round(root.fg-color.green * 255),
-                                    self.value
-                                );
-                            }
-                        }
+                    background: c;
+                    border-width: root.fg-color == c ? 3px : 1px;
+                    border-color: root.fg-color == c ? #cdd6f4 : #585b70;
+                    TouchArea {
+                        clicked => { root.fg-color = c; }
                     }
                 }
             }
         }
 
         VerticalLayout {
-            spacing: 4px;
+            spacing: 6px;
             Text {
                 text: "Background Color";
                 color: #cdd6f4;
                 font-size: 14px;
             }
             HorizontalLayout {
-                spacing: 8px;
-
-                Rectangle {
-                    width: 40px;
-                    height: 40px;
-                    background: root.bg-color;
+                spacing: 6px;
+                for c in root.palette: Rectangle {
+                    width: 24px;
+                    height: 24px;
                     border-radius: 4px;
-                    border-width: 1px;
-                    border-color: #585b70;
-                }
-
-                VerticalLayout {
-                    spacing: 2px;
-
-                    HorizontalLayout {
-                        spacing: 4px;
-                        Text { text: "R"; color: #f38ba8; font-size: 12px; vertical-alignment: center; width: 12px; }
-                        Slider {
-                            minimum: 0; maximum: 255;
-                            value: root.bg-color.red * 255;
-                            changed => {
-                                root.bg-color = rgb(
-                                    self.value,
-                                    round(root.bg-color.green * 255),
-                                    round(root.bg-color.blue * 255)
-                                );
-                            }
-                        }
-                    }
-                    HorizontalLayout {
-                        spacing: 4px;
-                        Text { text: "G"; color: #a6e3a1; font-size: 12px; vertical-alignment: center; width: 12px; }
-                        Slider {
-                            minimum: 0; maximum: 255;
-                            value: root.bg-color.green * 255;
-                            changed => {
-                                root.bg-color = rgb(
-                                    round(root.bg-color.red * 255),
-                                    self.value,
-                                    round(root.bg-color.blue * 255)
-                                );
-                            }
-                        }
-                    }
-                    HorizontalLayout {
-                        spacing: 4px;
-                        Text { text: "B"; color: #89b4fa; font-size: 12px; vertical-alignment: center; width: 12px; }
-                        Slider {
-                            minimum: 0; maximum: 255;
-                            value: root.bg-color.blue * 255;
-                            changed => {
-                                root.bg-color = rgb(
-                                    round(root.bg-color.red * 255),
-                                    round(root.bg-color.green * 255),
-                                    self.value
-                                );
-                            }
-                        }
+                    background: c;
+                    border-width: root.bg-color == c ? 3px : 1px;
+                    border-color: root.bg-color == c ? #cdd6f4 : #585b70;
+                    TouchArea {
+                        clicked => { root.bg-color = c; }
                     }
                 }
             }
