@@ -265,4 +265,28 @@ mod tests {
 
         assert!(chip8.tick().is_err());
     }
+
+    #[test]
+    fn test_draw_sprite() {
+        let mut chip8 = Cpu::new();
+
+        chip8.i = 0x200;
+        chip8.memory[chip8.i as usize] = 0b10000000;
+
+        let (opcode, x, y, n, nn, nnn) = chip8.decode(0xD011);
+        chip8.execute(opcode, x, y, n, nn, nnn);
+
+        let mut right_condition: [bool; 64 * 32] = [false; 64 * 32];
+        right_condition[0] = true;
+
+        assert_eq!(chip8.display, right_condition);
+        assert_eq!(chip8.v[0xF], 0);
+
+        chip8.execute(opcode, x, y, n, nn, nnn);
+
+        right_condition[0] = false;
+
+        assert_eq!(chip8.display, right_condition);
+        assert_eq!(chip8.v[0xF], 1);
+    }
 }
