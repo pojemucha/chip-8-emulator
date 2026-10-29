@@ -5,6 +5,15 @@ The documentation is based on [Keep a changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+## [0.7.0]
+
+### Added
+- 'DropArea' in 'MainWindow.slint' that accepts '.ch8' files and highlights the window during drag operations.
+- Import button in the header using 'rfd::FileDialog' to browse and select '*.ch8' files.
+- Extracted ROM name, file path, and size (formatted in B/KB) for display on game cards.
+- Automatic saving of the game library to '~/.config/chip8-emulator/library.json' (Linux) or '%APPDATA%\chip8-emulator\library.json' (Windows) using 'dirs' and 'serde_json'.
+- Configured 'App::new()' to read the saved configuration on startup, populate the games model, and automatically discard entries for files that no longer exist.
+
 ## [0.6.0]
 
 ### Added
