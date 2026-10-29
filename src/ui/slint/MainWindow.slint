@@ -11,6 +11,7 @@ export component MainWindow inherits Window {
 
     in-out property <bool> in-game: false;
     in property <[GameEntry]> games;
+    in property <image> screen;
 
     in-out property <bool> show-settings: false;
     in-out property <int> settings-clock: 700;
@@ -94,6 +95,7 @@ export component MainWindow inherits Window {
             }
 
             if root.in-game: EmulatorView {
+                screen: root.screen;
                 bg-color: root.settings-bg;
                 fg-color: root.settings-fg;
                 back-to-launcher => { root.back-to-launcher(); }
