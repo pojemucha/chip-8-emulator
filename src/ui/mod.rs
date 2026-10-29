@@ -1,4 +1,4 @@
-use slint::{ModelRc, SharedString, VecModel};
+use slint::{Color, ModelRc, SharedString, VecModel};
 use std::rc::Rc;
 
 use serde::{Deserialize, Serialize};
@@ -13,9 +13,28 @@ struct RomEntry {
     size: u64,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct EmulatorSettings {
+    clock_frequency: u32,
+    fg_color: [u8; 3],
+    bg_color: [u8; 3],
+}
+
+impl Default for EmulatorSettings {
+    fn default() -> Self {
+        Self {
+            clock_frequency: 700,
+            fg_color: [0xcd, 0xd6, 0xf4],
+            bg_color: [0x1e, 0x1e, 0x2e],
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Default, Clone)]
 struct LibraryConfig {
     roms: Vec<RomEntry>,
+    #[serde(default)]
+    settings: EmulatorSettings,
 }
 
 impl LibraryConfig {
@@ -57,6 +76,14 @@ fn format_size(bytes: u64) -> String {
     }
 }
 
+fn color_from_rgb(rgb: [u8; 3]) -> Color {
+    Color::from_rgb_u8(rgb[0], rgb[1], rgb[2])
+}
+
+fn rgb_from_color(c: Color) -> [u8; 3] {
+    [c.red(), c.green(), c.blue()]
+}
+
 pub struct App {
     ui: MainWindow,
     _games_model: Rc<VecModel<GameEntry>>,
@@ -81,6 +108,10 @@ impl App {
 
         let games_model = Rc::new(VecModel::from(games));
         ui.set_games(ModelRc::from(games_model.clone()));
+
+        ui.set_settings_clock(config.settings.clock_frequency as i32);
+        ui.set_settings_fg(color_from_rgb(config.settings.fg_color));
+        ui.set_settings_bg(color_from_rgb(config.settings.bg_color));
 
         ui.on_extract_rom_path(|transfer| {
             if let Ok(mut paths) = transfer.file_paths()
@@ -134,8 +165,29 @@ impl App {
             }
         });
 
-        ui.on_settings_clicked(|| {
-            println!("Settings clicked");
+        ui.on_settings_clicked({
+            let ui_weak = ui.as_weak();
+            move || {
+                ui_weak.unwrap().set_show_settings(true);
+            }
+        });
+
+        ui.on_save_settings({
+            let ui_weak = ui.as_weak();
+            let mut cfg = config.clone();
+            move |freq, fg, bg| {
+                let clamped = freq.clamp(200, 1200);
+                cfg.settings.clock_frequency = clamped as u32;
+                cfg.settings.fg_color = rgb_from_color(fg);
+                cfg.settings.bg_color = rgb_from_color(bg);
+                let _ = cfg.save();
+
+                if let Some(ui) = ui_weak.upgrade() {
+                    ui.set_settings_clock(clamped);
+                    ui.set_settings_fg(fg);
+                    ui.set_settings_bg(bg);
+                }
+            }
         });
 
         ui.on_game_selected({

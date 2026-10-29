@@ -1,20 +1,27 @@
 import { LauncherView, GameEntry } from "LauncherView.slint";
 import { EmulatorView } from "EmulatorView.slint";
+import { SettingsDialog } from "SettingsDialog.slint";
 
 export component MainWindow inherits Window {
     preferred-width: 800px;
     preferred-height: 600px;
     min-width: 480px;
     min-height: 360px;
-    background: #1e1e2e;
+    background: root.settings-bg;
 
     in-out property <bool> in-game: false;
     in property <[GameEntry]> games;
+
+    in-out property <bool> show-settings: false;
+    in-out property <int> settings-clock: 700;
+    in-out property <color> settings-fg: #cdd6f4;
+    in-out property <color> settings-bg: #1e1e2e;
 
     callback settings-clicked;
     callback browse-rom-clicked;
     callback game-selected(string);
     callback back-to-launcher;
+    callback save-settings(int, color, color);
 
     pure callback extract-rom-path(data-transfer) -> string;
     callback rom-dropped(string);
@@ -87,12 +94,13 @@ export component MainWindow inherits Window {
             }
 
             if root.in-game: EmulatorView {
+                bg-color: root.settings-bg;
+                fg-color: root.settings-fg;
                 back-to-launcher => { root.back-to-launcher(); }
             }
         }
     }
 
-    
     Rectangle {
         background: drop.has-drag ? #45475a80 : #00000000;
 
@@ -109,6 +117,30 @@ export component MainWindow inherits Window {
                     root.rom-dropped(path);
                 }
                 DragAction.copy
+            }
+        }
+    }
+
+    if root.show-settings: Rectangle {
+        background: #00000080;
+
+        outside := TouchArea {
+            clicked => { }
+        }
+
+        SettingsDialog {
+            x: (root.width - self.width) / 2;
+            y: (root.height - self.height) / 2;
+            clock-frequency: root.settings-clock;
+            fg-color: root.settings-fg;
+            bg-color: root.settings-bg;
+
+            save-settings(freq, fg, bg) => {
+                root.show-settings = false;
+                root.save-settings(freq, fg, bg);
+            }
+            cancel-settings => {
+                root.show-settings = false;
             }
         }
     }

@@ -1,5 +1,8 @@
 export component EmulatorView inherits Rectangle {
-    background: #11111b;
+    in property <color> bg-color: #11111b;
+    in property <color> fg-color: #cdd6f4;
+
+    background: root.bg-color;
 
     callback back-to-launcher;
 
@@ -9,12 +12,11 @@ export component EmulatorView inherits Rectangle {
 
         Text {
             text: "Emulator running...";
-            color: #cdd6f4;
+            color: root.fg-color;
             font-size: 18px;
             horizontal-alignment: center;
         }
 
-        // Кнопка: Rectangle + Text + TouchArea
         Rectangle {
             width: 160px;
             height: 36px;

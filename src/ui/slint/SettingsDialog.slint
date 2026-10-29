@@ -1,0 +1,217 @@
+import { Slider } from "std-widgets.slint";
+
+export component SettingsDialog inherits Rectangle {
+    in-out property <int> clock-frequency: 700;
+    in-out property <color> fg-color: #cdd6f4;
+    in-out property <color> bg-color: #1e1e2e;
+
+    callback save-settings(int, color, color);
+    callback cancel-settings();
+
+    width: 420px;
+    height: 420px;
+    border-radius: 8px;
+    background: #2a2a3e;
+
+    VerticalLayout {
+        padding: 20px;
+        spacing: 16px;
+
+        Text {
+            text: "Settings";
+            color: #cdd6f4;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        VerticalLayout {
+            spacing: 4px;
+            Text {
+                text: "CPU Clock: \{root.clock-frequency} Hz";
+                color: #cdd6f4;
+                font-size: 14px;
+            }
+            Slider {
+                minimum: 200;
+                maximum: 1200;
+                value: root.clock-frequency;
+                changed => { root.clock-frequency = self.value; }
+            }
+        }
+
+        VerticalLayout {
+            spacing: 4px;
+            Text {
+                text: "Active Pixel Color";
+                color: #cdd6f4;
+                font-size: 14px;
+            }
+            HorizontalLayout {
+                spacing: 8px;
+
+                Rectangle {
+                    width: 40px;
+                    height: 40px;
+                    background: root.fg-color;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: #585b70;
+                }
+
+                VerticalLayout {
+                    spacing: 2px;
+
+                    HorizontalLayout {
+                        spacing: 4px;
+                        Text { text: "R"; color: #f38ba8; font-size: 12px; vertical-alignment: center; width: 12px; }
+                        Slider {
+                            minimum: 0; maximum: 255;
+                            value: root.fg-color.red * 255;
+                            changed => {
+                                root.fg-color = rgb(
+                                    self.value,
+                                    round(root.fg-color.green * 255),
+                                    round(root.fg-color.blue * 255)
+                                );
+                            }
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 4px;
+                        Text { text: "G"; color: #a6e3a1; font-size: 12px; vertical-alignment: center; width: 12px; }
+                        Slider {
+                            minimum: 0; maximum: 255;
+                            value: root.fg-color.green * 255;
+                            changed => {
+                                root.fg-color = rgb(
+                                    round(root.fg-color.red * 255),
+                                    self.value,
+                                    round(root.fg-color.blue * 255)
+                                );
+                            }
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 4px;
+                        Text { text: "B"; color: #89b4fa; font-size: 12px; vertical-alignment: center; width: 12px; }
+                        Slider {
+                            minimum: 0; maximum: 255;
+                            value: root.fg-color.blue * 255;
+                            changed => {
+                                root.fg-color = rgb(
+                                    round(root.fg-color.red * 255),
+                                    round(root.fg-color.green * 255),
+                                    self.value
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        VerticalLayout {
+            spacing: 4px;
+            Text {
+                text: "Background Color";
+                color: #cdd6f4;
+                font-size: 14px;
+            }
+            HorizontalLayout {
+                spacing: 8px;
+
+                Rectangle {
+                    width: 40px;
+                    height: 40px;
+                    background: root.bg-color;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: #585b70;
+                }
+
+                VerticalLayout {
+                    spacing: 2px;
+
+                    HorizontalLayout {
+                        spacing: 4px;
+                        Text { text: "R"; color: #f38ba8; font-size: 12px; vertical-alignment: center; width: 12px; }
+                        Slider {
+                            minimum: 0; maximum: 255;
+                            value: root.bg-color.red * 255;
+                            changed => {
+                                root.bg-color = rgb(
+                                    self.value,
+                                    round(root.bg-color.green * 255),
+                                    round(root.bg-color.blue * 255)
+                                );
+                            }
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 4px;
+                        Text { text: "G"; color: #a6e3a1; font-size: 12px; vertical-alignment: center; width: 12px; }
+                        Slider {
+                            minimum: 0; maximum: 255;
+                            value: root.bg-color.green * 255;
+                            changed => {
+                                root.bg-color = rgb(
+                                    round(root.bg-color.red * 255),
+                                    self.value,
+                                    round(root.bg-color.blue * 255)
+                                );
+                            }
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 4px;
+                        Text { text: "B"; color: #89b4fa; font-size: 12px; vertical-alignment: center; width: 12px; }
+                        Slider {
+                            minimum: 0; maximum: 255;
+                            value: root.bg-color.blue * 255;
+                            changed => {
+                                root.bg-color = rgb(
+                                    round(root.bg-color.red * 255),
+                                    round(root.bg-color.green * 255),
+                                    self.value
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        HorizontalLayout {
+            alignment: end;
+            spacing: 8px;
+
+            Rectangle {
+                width: 80px; height: 32px;
+                border-radius: 4px;
+                background: cancel-touch.has-hover ? #45475a : #313244;
+                Text {
+                    text: "Cancel"; color: #cdd6f4;
+                    horizontal-alignment: center; vertical-alignment: center;
+                }
+                cancel-touch := TouchArea {
+                    clicked => { root.cancel-settings(); }
+                }
+            }
+
+            Rectangle {
+                width: 80px; height: 32px;
+                border-radius: 4px;
+                background: save-touch.has-hover ? #94e2d5 : #74c7ec;
+                Text {
+                    text: "Save"; color: #1e1e2e;
+                    horizontal-alignment: center; vertical-alignment: center;
+                }
+                save-touch := TouchArea {
+                    clicked => {
+                        root.save-settings(root.clock-frequency, root.fg-color, root.bg-color);
+                    }
+                }
+            }
+        }
+    }
+}
