@@ -5,6 +5,18 @@ The documentation is based on [Keep a changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+## [0.9.0]
+
+### Added
+- 'SettingsDialog': A new configuration modal featuring:
+  - A CPU frequency slider (200–1200 Hz, default: 700 Hz).
+  - RGB sliders with live previews for both active pixel (foreground) and background colors.
+  - Save and Cancel action buttons.
+- 'MainWindow' and 'EmulatorView' now support dynamic theming, applying the chosen background and foreground colors to the emulation screen immediately.
+- Struct 'EmulatorSettings' with 'LibraryConfig' field.
+- '#[serde(dufault)]' ensures old 'library.json' migration.
+- 'on_save_settings' saves into JSON and applies changes instantly.
+
 ## [0.8.0]
 
 ### Added
