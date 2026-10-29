@@ -5,6 +5,16 @@ The documentation is based on [Keep a changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+## [0.8.0]
+
+### Added
+- ALU instructions ('8XYN') for bitwise operations, shifts, and arithmetic with precise 'VF' carry/borrow flag handling.
+- Memory manipulation and control flow instructions ('ANNN', 'BXNN', 'FX1E', 'FX29').
+- Random number generation instruction ('CXNN') using the 'rand' crate.
+- Binary-Coded Decimal (BCD) conversion logic ('FX33').
+- Register memory load and store instructions ('FX55', 'FX65').
+- Unit tests validating arithmetic overflow behavior and BCD memory layout.
+
 ## [0.7.0]
 
 ### Added
