@@ -5,6 +5,12 @@ The documentation is based on [Keep a changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+## [0.5.0]
+
+### Added
+- 64x32 monochome display buffer
+- Instructions 'CLS' (Clear screen (00E0)) and 'DRW' (Display (DXYN))
+
 ## [0.4.0]
 
 ### Added
