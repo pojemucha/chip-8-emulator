@@ -45,7 +45,7 @@ impl Cpu {
             pc: 0x200,
             stack: [0; 16],
             sp: 0,
-            
+
             display: [false; 64 * 32],
         };
 
@@ -141,6 +141,45 @@ impl Cpu {
             // ADD (7XNN)
             (0x7, _, _, _) => {
                 self.v[x as usize] = self.v[x as usize].wrapping_add(nn);
+            }
+            // Drawing
+            // Clear screen (00E0)
+            (0x0, 0x0, 0xE, 0x0) => {
+                self.display = [false; 64 * 32];
+            }
+            // Display (DXYN)
+            (0xD, _, _, _) => {
+                let x_coord: u8 = self.v[x as usize] % 64;
+                let y_coord: u8 = self.v[y as usize] % 32;
+
+                self.v[0xF] = 0x0;
+
+                for row in 0..n {
+                    let current_y = y_coord + row;
+
+                    if current_y > 31 {
+                        break;
+                    }
+
+                    let sprite_byte: u8 = self.memory[(self.i + row as u16) as usize];
+
+                    for col in 0..8 {
+                        let current_x = x_coord + col;
+
+                        if current_x > 63 {
+                            break;
+                        }
+
+                        let coord: usize = (current_y as usize) * 64 + (current_x as usize);
+
+                        if (sprite_byte & ((1 << 7) >> col)) != 0 {
+                            if self.display[coord] {
+                                self.v[0xF] = 1;
+                            }
+                            self.display[coord] ^= true;
+                        }
+                    }
+                }
             }
             (_, _, _, _) => (),
         }
