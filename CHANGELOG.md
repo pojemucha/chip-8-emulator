@@ -5,6 +5,16 @@ The documentation is based on [Keep a changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+## [0.6.0]
+
+### Added
+- 'delay_timer', 'sound_timer' to the CPU struct.
+- 'update_timers' method to safely countdown to 0.
+- 'keypad', a 16-element boolean array, to track state of hexadecimal keypad. 
+- Timers instructions ('FX07', 'FX15', 'FX18').
+- Blocking 'FX0A' instruction to loop until any key is pressed.
+- Unit test to validate the blocking mechanism and successful key cupture for 'FX0a' instruction.
+
 ## [0.5.0]
 
 ### Added
