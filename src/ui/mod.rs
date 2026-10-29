@@ -59,7 +59,6 @@ fn format_size(bytes: u64) -> String {
 
 pub struct App {
     ui: MainWindow,
-    //emu: Rc<RefCell<core::Emulator>>,
     _games_model: Rc<VecModel<GameEntry>>,
 }
 
@@ -84,12 +83,12 @@ impl App {
         ui.set_games(ModelRc::from(games_model.clone()));
 
         ui.on_extract_rom_path(|transfer| {
-            if let Ok(mut paths) = transfer.file_paths() {
-                if let Some(path) = paths.next() {
-                    let p = path.to_string_lossy();
-                    if p.ends_with(".ch8") {
-                        return SharedString::from(p.to_string());
-                    }
+            if let Ok(mut paths) = transfer.file_paths()
+                && let Some(path) = paths.next()
+            {
+                let p = path.to_string_lossy();
+                if p.ends_with(".ch8") {
+                    return SharedString::from(p.to_string());
                 }
             }
             SharedString::from("")
@@ -121,25 +120,28 @@ impl App {
                     .set_title("Select a Chip-8 ROM")
                     .pick_file();
 
-                if let Some(path) = path {
-                    if let Some(entry) = extract_rom_metadata(&path) {
-                        model.push(GameEntry {
-                            title: SharedString::from(entry.title.clone()),
-                            size: SharedString::from(format_size(entry.size)),
-                            icon: slint::Image::default(),
-                        });
-                        cfg.roms.push(entry);
-                        let _ = cfg.save();
-                    }
+                if let Some(path) = path
+                    && let Some(entry) = extract_rom_metadata(&path)
+                {
+                    model.push(GameEntry {
+                        title: SharedString::from(entry.title.clone()),
+                        size: SharedString::from(format_size(entry.size)),
+                        icon: slint::Image::default(),
+                    });
+                    cfg.roms.push(entry);
+                    let _ = cfg.save();
                 }
             }
+        });
+
+        ui.on_settings_clicked(|| {
+            println!("Settings clicked");
         });
 
         ui.on_game_selected({
             let ui_weak = ui.as_weak();
             move |_title| {
-                let ui = ui_weak.unwrap();
-                ui.set_in_game(true);
+                ui_weak.unwrap().set_in_game(true);
             }
         });
 
@@ -147,12 +149,6 @@ impl App {
             let ui_weak = ui.as_weak();
             move || {
                 ui_weak.unwrap().set_in_game(false);
-            }
-        });
-
-        ui.on_settings_clicked({
-            move || {
-                println!("Settings clicked");
             }
         });
 
