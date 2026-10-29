@@ -33,6 +33,11 @@ struct Cpu {
     sp: usize,
 
     display: [bool; 64 * 32],
+
+    delay_timer: u8,
+    sound_timer: u8,
+
+    keypad: [bool; 16],
 }
 
 #[allow(dead_code)]
@@ -47,6 +52,11 @@ impl Cpu {
             sp: 0,
 
             display: [false; 64 * 32],
+
+            delay_timer: 0,
+            sound_timer: 0,
+
+            keypad: [false; 16],
         };
 
         chip8.memory[0x050..0x0A0].copy_from_slice(&FONTSET);
@@ -181,6 +191,44 @@ impl Cpu {
                     }
                 }
             }
+            // Timers
+            // FX07
+            (0xF, _, 0x0, 0x7) => {
+                self.v[x as usize] = self.delay_timer;
+            }
+            // FX15
+            (0xF, _, 0x1, 0x5) => {
+                self.delay_timer = self.v[x as usize];
+            }
+            // FX18
+            (0xF, _, 0x1, 0x8) => {
+                self.sound_timer = self.v[x as usize];
+            }
+            // Skip if key
+            // EX9E
+            (0xE, _, 0x9, 0xE) => {
+                if self.keypad[self.v[x as usize] as usize] {
+                    self.pc += 2;
+                }
+            }
+            // EXA1
+            (0xE, _, 0xA, 0x1) => {
+                if !self.keypad[self.v[x as usize] as usize] {
+                    self.pc += 2;
+                }
+            }
+
+            // Get key (FX0A)
+            (0xF, _, 0x0, 0xA) => {
+                for i in 0..=0xF {
+                    if self.keypad[i] {
+                        self.v[x as usize] = i as u8;
+                        return;
+                    }
+                }
+
+                self.pc -= 2;
+            }
             (_, _, _, _) => (),
         }
     }
@@ -202,6 +250,11 @@ impl Cpu {
         self.execute(opcode, x, y, n, nn, nnn);
 
         Ok(())
+    }
+
+    pub fn update_timers(&mut self) {
+        self.delay_timer = self.delay_timer.saturating_sub(1);
+        self.sound_timer = self.sound_timer.saturating_sub(1);
     }
 }
 
@@ -288,5 +341,22 @@ mod tests {
 
         assert_eq!(chip8.display, right_condition);
         assert_eq!(chip8.v[0xF], 1);
+    }
+
+    #[test]
+    fn test_wait_keypress() {
+        let mut chip8 = Cpu::new();
+
+        chip8.memory[0x200] = 0xF3;
+        chip8.memory[0x201] = 0x0A;
+
+        assert!(chip8.tick().is_ok());
+        assert_eq!(chip8.pc, 0x200);
+
+        chip8.keypad[0x5] = true;
+
+        assert!(chip8.tick().is_ok());
+        assert_eq!(chip8.v[3], 0x5);
+        assert_eq!(chip8.pc, 0x200 + 2);
     }
 }
