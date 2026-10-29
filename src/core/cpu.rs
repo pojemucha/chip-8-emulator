@@ -31,6 +31,8 @@ struct Cpu {
     pc: u16,
     stack: [u16; 16],
     sp: usize,
+
+    display: [bool; 64 * 32],
 }
 
 #[allow(dead_code)]
@@ -43,6 +45,8 @@ impl Cpu {
             pc: 0x200,
             stack: [0; 16],
             sp: 0,
+            
+            display: [false; 64 * 32],
         };
 
         chip8.memory[0x050..0x0A0].copy_from_slice(&FONTSET);
