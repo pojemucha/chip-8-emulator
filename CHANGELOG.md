@@ -5,6 +5,25 @@ The documentation is based on [Keep a changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-30
+
+### Added
+- Integrated a background thread for CPU execution, safely managed via `Arc<Mutex>` and `AtomicBool` to prevent UI freezing.
+- Added continuous audio playback using the `rodio` crate, generating a 440Hz sine wave that correctly responds to the `sound_timer`.
+- Implemented a duplicate check when importing ROMs (via drag-and-drop or file browser) to prevent adding the same game twice.
+- Added full QWERTY / ЙЦУКЕН keyboard mapping for seamless input across different language layouts.
+
+### Changed
+- Moved the "Back to Library" button to the top navigation bar during gameplay, optimizing screen space for the emulator view.
+- Exposed `sound_timer`, `display`, and `keypad` as public fields in the `Cpu` struct to allow safe external polling and mutation by the UI thread.
+
+### Fixed
+- Fixed a bug where clicking the emulator screen would drop keyboard input focus by adding a background `TouchArea` to `EmulatorView`.
+- Fixed an issue causing `pc` to go out of bounds on subsequent game loads by implementing a complete state reset (`locked_cpu.clear()`) when returning to the library.
+
+### Removed
+- Removed the unused `src/ui/settings.rs` module, centralizing all configuration state within `LibraryConfig` and `EmulatorSettings`.
+
 ## [0.10.0]
 
 ### Added
