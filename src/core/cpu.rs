@@ -2,7 +2,6 @@ use std::io;
 
 use rand::Rng;
 
-#[allow(dead_code)]
 const FONTSET: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -22,11 +21,9 @@ const FONTSET: [u8; 80] = [
     0xF0, 0x80, 0xF0, 0x80, 0x80, // F
 ];
 
-#[allow(dead_code)]
 const MAX_ALLOWED_SIZE: usize = 3584;
 
-#[allow(dead_code)]
-struct Cpu {
+pub struct Cpu {
     memory: [u8; 4096],
     v: [u8; 16],
     i: u16,
@@ -34,15 +31,14 @@ struct Cpu {
     stack: [u16; 16],
     sp: usize,
 
-    display: [bool; 64 * 32],
+    pub display: [bool; 64 * 32],
 
     delay_timer: u8,
-    sound_timer: u8,
+    pub sound_timer: u8,
 
-    keypad: [bool; 16],
+    pub keypad: [bool; 16],
 }
 
-#[allow(dead_code)]
 impl Cpu {
     pub fn new() -> Self {
         let mut chip8 = Self {
@@ -64,6 +60,24 @@ impl Cpu {
         chip8.memory[0x050..0x0A0].copy_from_slice(&FONTSET);
 
         chip8
+    }
+
+    pub fn clear(&mut self) {
+        self.memory = [0; 4096];
+        self.v = [0; 16];
+        self.i = 0;
+        self.pc = 0x200;
+        self.stack = [0; 16];
+        self.sp = 0;
+
+        self.display = [false; 64 * 32];
+
+        self.delay_timer = 0;
+        self.sound_timer = 0;
+
+        self.keypad = [false; 16];
+
+        self.memory[0x050..0x0A0].copy_from_slice(&FONTSET);
     }
 
     pub fn load_rom(&mut self, buffer: &[u8]) -> io::Result<()> {
@@ -350,7 +364,7 @@ impl Cpu {
         }
     }
 
-    fn tick(&mut self) -> io::Result<()> {
+    pub fn tick(&mut self) -> io::Result<()> {
         if self.pc > 4094 {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,

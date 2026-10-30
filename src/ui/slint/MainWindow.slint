@@ -17,11 +17,14 @@ export component MainWindow inherits Window {
     in-out property <int> settings-clock: 700;
     in-out property <color> settings-fg: #cdd6f4;
     in-out property <color> settings-bg: #1e1e2e;
+    in-out property <color> fg-color: #cdd6f4;
 
     callback settings-clicked;
     callback browse-rom-clicked;
     callback game-selected(string);
     callback back-to-launcher;
+    callback press-key(string);
+    callback release-key(string);
     callback save-settings(int, color, color);
 
     pure callback extract-rom-path(data-transfer) -> string;
@@ -33,16 +36,38 @@ export component MainWindow inherits Window {
             background: #2a2a3e;
 
             HorizontalLayout {
+                padding-top: 8px;
                 padding-left: 16px;
                 padding-right: 16px;
                 alignment: space-between;
 
-                Text {
-                    text: "Chip-8 Emulator";
-                    color: #cdd6f4;
-                    font-size: 16px;
-                    vertical-alignment: center;
-                }
+                if root.in-game:
+                    Rectangle {
+                        width: 160px;
+                        height: 32px;
+                        border-radius: 4px;
+                        background: touch.has-hover ? #45475a : #313244;
+
+                        Text {
+                            text: "Back to Library";
+                            color: root.fg-color;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+
+                        touch := TouchArea {
+                            clicked => { root.back-to-launcher(); }
+                        }
+                    }
+
+                if !root.in-game:
+                    Text {
+                        height:32px;
+                        text: "Chip-8 Emulator";
+                        color: #cdd6f4;
+                        font-size: 16px;
+                        vertical-alignment: center;
+                    }
 
                 HorizontalLayout {
                     spacing: 8px;
@@ -97,8 +122,8 @@ export component MainWindow inherits Window {
             if root.in-game: EmulatorView {
                 screen: root.screen;
                 bg-color: root.settings-bg;
-                fg-color: root.settings-fg;
-                back-to-launcher => { root.back-to-launcher(); }
+                press-key(key) => {root.press-key(key); }
+                release-key(key) => {root.release-key(key);}
             }
         }
     }
@@ -108,9 +133,7 @@ export component MainWindow inherits Window {
 
         drop := DropArea {
             can-drop(event) => {
-                root.extract-rom-path(event.data) != ""
-                    ? DragAction.copy
-                    : DragAction.none;
+                DragAction.copy
             }
 
             dropped(event) => {

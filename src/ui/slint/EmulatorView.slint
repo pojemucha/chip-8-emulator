@@ -1,40 +1,42 @@
 export component EmulatorView inherits Rectangle {
     in property <image> screen;
     in property <color> bg-color: #11111b;
-    in property <color> fg-color: #cdd6f4;
 
     background: root.bg-color;
 
-    callback back-to-launcher;
+    callback press-key(string);
+    callback release-key(string);
 
-    VerticalLayout {
-        alignment: center;
-        spacing: 12px;
-
-        Image {
-            source: root.screen;
-            image-fit: contain;
-            image-rendering: pixelated;
-            min-width: 256px;
-            min-height: 128px;
+    game-scope := FocusScope {
+        init => {
+            self.focus();
         }
 
-        Rectangle {
-            width: 160px;
-            height: 36px;
-            border-radius: 4px;
-            background: touch.has-hover ? #45475a : #313244;
+        VerticalLayout {
+            alignment: center;
+            spacing: 12px;
 
-            Text {
-                text: "Back to Library";
-                color: root.fg-color;
-                horizontal-alignment: center;
-                vertical-alignment: center;
-            }
+            Image {
+                source: root.screen;
+                image-fit: contain;
+                image-rendering: pixelated;
+                min-width: 256px;
+                min-height: 128px;
 
-            touch := TouchArea {
-                clicked => { root.back-to-launcher(); }
+                TouchArea {
+                    clicked => { game-scope.focus(); }
+                }
             }
+        }
+
+        key-pressed(event) => {
+            root.press-key(event.text);
+            accept
+        }
+
+        key-released(event) => {
+            root.release-key(event.text);
+            accept
         }
     }
 }
