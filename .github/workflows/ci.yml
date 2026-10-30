@@ -1,0 +1,72 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*.*.*", "v*" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+jobs:
+  test_code:
+    name: Test and Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check formatting
+        run: cargo fmt -- --check
+      - name: Run Clippy
+        run: cargo clippy -- -D warnings
+
+  build:
+    name: Build for ${{ matrix.os }}
+    needs: test_code
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            binary_name: chip8
+            release_name: chip8-linux
+          - os: windows-latest
+            binary_name: chip8.exe
+            release_name: chip8-windows.exe
+          - os: macos-latest
+            binary_name: chip8
+            release_name: chip8-macos
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build release
+        run: cargo build --release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.release_name }}
+          path: target/release/${{ matrix.binary_name }}
+
+  publish_release:
+    name: Create GitHub Release
+    needs: build
+    # Only for tags
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          body: "Automated release of emulator version ${{ github.ref_name }}"
+          files: artifacts/*
