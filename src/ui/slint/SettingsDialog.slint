@@ -13,11 +13,17 @@ export component SettingsDialog inherits Rectangle {
     border-radius: 8px;
     background: #2a2a3e;
 
-    property <[color]> palette: [
+    property <[color]> bg-palette: [
         #000000, #1d2b53, #7e2553, #008751,
         #ab5236, #5f574f, #c2c3c7, #fff1e8,
         #ff004d, #ffa300, #ffec27, #00e436,
         #29adff, #83769c, #ff77a8,
+    ];
+
+    property <[color]> fg-palette: [
+        #cdd6f4, #bac2de, #a6adc8, #b4befe, #cba6f7,
+        #f5c2e7, #eba0ac, #f38ba8, #fab387, #f9e2af,
+        #a6e3a1, #94e2d5, #8bd5ca, #89dceb, #74c7ec
     ];
 
     VerticalLayout {
@@ -55,7 +61,7 @@ export component SettingsDialog inherits Rectangle {
             }
             HorizontalLayout {
                 spacing: 6px;
-                for c in root.palette: Rectangle {
+                for c in root.fg-palette: Rectangle {
                     width: 24px;
                     height: 24px;
                     border-radius: 4px;
@@ -78,7 +84,7 @@ export component SettingsDialog inherits Rectangle {
             }
             HorizontalLayout {
                 spacing: 6px;
-                for c in root.palette: Rectangle {
+                for c in root.bg-palette: Rectangle {
                     width: 24px;
                     height: 24px;
                     border-radius: 4px;
