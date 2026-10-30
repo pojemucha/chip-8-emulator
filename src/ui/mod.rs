@@ -6,7 +6,16 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
+use std::sync::{
+    Arc, Mutex,
+    atomic::{AtomicBool, Ordering},
+};
+
+use rodio::{OutputStream, Sink};
+
 slint::include_modules!();
+
+use crate::core::cpu::Cpu;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct RomEntry {
@@ -87,7 +96,7 @@ fn rgb_from_color(c: Color) -> [u8; 3] {
 }
 
 fn convert_framebuffer(
-    buf: &[[bool; 64]; 32],
+    buf: &[bool; 64 * 32],
     fg: [u8; 3],
     bg: [u8; 3],
     scale: u32,
@@ -101,7 +110,7 @@ fn convert_framebuffer(
         for x in 0..w {
             let px = (x / scale) as usize;
             let py = (y / scale) as usize;
-            let (r, g, b) = if buf[py][px] {
+            let (r, g, b) = if buf[py * 64 + px] {
                 (fg[0], fg[1], fg[2])
             } else {
                 (bg[0], bg[1], bg[2])
@@ -112,37 +121,68 @@ fn convert_framebuffer(
     slint::Image::from_rgba8(pb)
 }
 
-fn dummy_framebuffer() -> [[bool; 64]; 32] {
-    let mut buf = [[false; 64]; 32];
-
-    for cell in buf[0].iter_mut() {
-        *cell = true;
+fn map_key(key: &str) -> Option<usize> {
+    match &key.to_lowercase()[..] {
+        "1" => Some(0x1),
+        "2" => Some(0x2),
+        "3" => Some(0x3),
+        "4" => Some(0xC),
+        // en
+        "q" => Some(0x4),
+        "w" => Some(0x5),
+        "e" => Some(0x6),
+        "r" => Some(0xD),
+        "a" => Some(0x7),
+        "s" => Some(0x8),
+        "d" => Some(0x9),
+        "f" => Some(0xE),
+        "z" => Some(0xA),
+        "x" => Some(0x0),
+        "c" => Some(0xB),
+        "v" => Some(0xF),
+        // ru
+        "й" => Some(0x4),
+        "ц" => Some(0x5),
+        "у" => Some(0x6),
+        "к" => Some(0xD),
+        "ф" => Some(0x7),
+        "ы" => Some(0x8),
+        "в" => Some(0x9),
+        "а" => Some(0xE),
+        "я" => Some(0xA),
+        "ч" => Some(0x0),
+        "с" => Some(0xB),
+        "м" => Some(0xF),
+        _ => None,
     }
-    for cell in buf[31].iter_mut() {
-        *cell = true;
-    }
-    for row in buf.iter_mut() {
-        row[0] = true;
-        row[63] = true;
-    }
-
-    buf
 }
 
 pub struct App {
     ui: MainWindow,
     _games_model: Rc<VecModel<GameEntry>>,
     _timer: slint::Timer,
+    _stream: OutputStream,
 }
 
 impl App {
     pub fn new() -> Result<Self, slint::PlatformError> {
         let ui = MainWindow::new()?;
 
-        let mut config = LibraryConfig::load();
-        config.roms.retain(|r| r.path.exists());
+        let chip8 = Arc::new(Mutex::new(Cpu::new()));
+        let is_running = Arc::new(AtomicBool::new(false));
+
+        let (stream, stream_handle) = OutputStream::try_default().unwrap();
+        let sink = Rc::new(RefCell::new(Sink::try_new(&stream_handle).unwrap()));
+
+        sink.borrow_mut()
+            .append(rodio::source::SineWave::new(440.0));
+        sink.borrow_mut().pause();
+
+        let config = Rc::new(RefCell::new(LibraryConfig::load()));
+        config.borrow_mut().roms.retain(|r| r.path.exists());
 
         let games: Vec<GameEntry> = config
+            .borrow()
             .roms
             .iter()
             .map(|r| GameEntry {
@@ -155,11 +195,11 @@ impl App {
         let games_model = Rc::new(VecModel::from(games));
         ui.set_games(ModelRc::from(games_model.clone()));
 
-        ui.set_settings_clock(config.settings.clock_frequency as i32);
-        ui.set_settings_fg(color_from_rgb(config.settings.fg_color));
-        ui.set_settings_bg(color_from_rgb(config.settings.bg_color));
+        ui.set_settings_clock(config.borrow().settings.clock_frequency as i32);
+        ui.set_settings_fg(color_from_rgb(config.borrow().settings.fg_color));
+        ui.set_settings_bg(color_from_rgb(config.borrow().settings.bg_color));
 
-        let shared_settings = Rc::new(RefCell::new(config.settings.clone()));
+        let shared_settings = Rc::new(RefCell::new(config.borrow().settings.clone()));
 
         ui.on_extract_rom_path(|transfer| {
             if let Ok(mut paths) = transfer.file_paths()
@@ -175,24 +215,26 @@ impl App {
 
         ui.on_rom_dropped({
             let model = games_model.clone();
-            let mut cfg = config.clone();
+            let cfg = config.clone();
             move |path_str| {
                 let path = PathBuf::from(path_str.as_str());
-                if let Some(entry) = extract_rom_metadata(&path) {
+                if let Some(entry) = extract_rom_metadata(&path)
+                    && !cfg.borrow().roms.iter().any(|r| r.path == path)
+                {
                     model.push(GameEntry {
                         title: SharedString::from(entry.title.clone()),
                         size: SharedString::from(format_size(entry.size)),
                         icon: slint::Image::default(),
                     });
-                    cfg.roms.push(entry);
-                    let _ = cfg.save();
+                    cfg.borrow_mut().roms.push(entry);
+                    let _ = cfg.borrow().save();
                 }
             }
         });
 
         ui.on_browse_rom_clicked({
             let model = games_model.clone();
-            let mut cfg = config.clone();
+            let cfg = config.clone();
             move || {
                 let path = rfd::FileDialog::new()
                     .add_filter("Chip-8 ROM", &["ch8"])
@@ -201,14 +243,15 @@ impl App {
 
                 if let Some(path) = path
                     && let Some(entry) = extract_rom_metadata(&path)
+                    && !cfg.borrow().roms.iter().any(|r| r.path == path)
                 {
                     model.push(GameEntry {
                         title: SharedString::from(entry.title.clone()),
                         size: SharedString::from(format_size(entry.size)),
                         icon: slint::Image::default(),
                     });
-                    cfg.roms.push(entry);
-                    let _ = cfg.save();
+                    cfg.borrow_mut().roms.push(entry);
+                    let _ = cfg.borrow().save();
                 }
             }
         });
@@ -232,16 +275,16 @@ impl App {
         ui.on_save_settings({
             let ui_weak = ui.as_weak();
             let shared = shared_settings.clone();
-            let mut cfg = config.clone();
+            let cfg = config.clone();
             move |freq, fg, bg| {
                 let clamped = freq.clamp(200, 1200);
                 let fg_rgb = rgb_from_color(fg);
                 let bg_rgb = rgb_from_color(bg);
 
-                cfg.settings.clock_frequency = clamped as u32;
-                cfg.settings.fg_color = fg_rgb;
-                cfg.settings.bg_color = bg_rgb;
-                let _ = cfg.save();
+                cfg.borrow_mut().settings.clock_frequency = clamped as u32;
+                cfg.borrow_mut().settings.fg_color = fg_rgb;
+                cfg.borrow_mut().settings.bg_color = bg_rgb;
+                let _ = cfg.borrow().save();
 
                 let mut s = shared.borrow_mut();
                 s.clock_frequency = clamped as u32;
@@ -258,28 +301,116 @@ impl App {
         });
 
         ui.on_game_selected({
+            let clone_config = config.clone();
+            let clone_settings = shared_settings.clone();
+            let clone_cpu = Arc::clone(&chip8);
+            let current_state = Arc::clone(&is_running);
+
             let ui_weak = ui.as_weak();
+
             move |_title| {
+                current_state.store(true, Ordering::Relaxed);
+                let clone_is_running = Arc::clone(&current_state);
+
                 ui_weak.unwrap().set_in_game(true);
+
+                let config_binding = clone_config.borrow();
+                let game_entry = config_binding.roms.iter().find(|rom| _title == rom.title);
+
+                if let Some(entry) = game_entry
+                    && let Ok(rom_bytes) = std::fs::read(&entry.path)
+                {
+                    let mut locked_cpu = clone_cpu.lock().unwrap();
+
+                    locked_cpu.load_rom(&rom_bytes).unwrap();
+                }
+
+                let locked_cpu = Arc::clone(&clone_cpu);
+
+                let clock_speed = clone_settings.borrow().clock_frequency;
+
+                std::thread::spawn(move || {
+                    while clone_is_running.load(Ordering::Relaxed) {
+                        {
+                            let mut cpu = locked_cpu.lock().unwrap();
+
+                            cpu.tick().unwrap();
+                        }
+
+                        std::thread::sleep(std::time::Duration::from_micros(
+                            1_000_000 / (clock_speed as u64),
+                        ));
+                    }
+                });
             }
         });
 
         ui.on_back_to_launcher({
+            let current_state = Arc::clone(&is_running);
+            let cpu = Arc::clone(&chip8);
+
             let ui_weak = ui.as_weak();
             move || {
+                let mut locked_cpu = cpu.lock().unwrap();
+                locked_cpu.clear();
+
+                current_state.store(false, Ordering::Relaxed);
+
                 ui_weak.unwrap().set_in_game(false);
+            }
+        });
+
+        ui.on_press_key({
+            let cpu = Arc::clone(&chip8);
+
+            move |_key| {
+                let mut locked_cpu = cpu.lock().unwrap();
+
+                if let Some(key) = map_key(_key.as_str()) {
+                    locked_cpu.keypad[key] = true;
+                }
+            }
+        });
+
+        ui.on_release_key({
+            let cpu = Arc::clone(&chip8);
+
+            move |_key| {
+                let mut locked_cpu = cpu.lock().unwrap();
+
+                if let Some(key) = map_key(_key.as_str()) {
+                    locked_cpu.keypad[key] = false;
+                }
             }
         });
 
         let ui_weak = ui.as_weak();
         let shared_for_timer = shared_settings.clone();
         let timer = slint::Timer::default();
+        let cpu = Arc::clone(&chip8);
+        let mut is_playing = false;
+
         timer.start(
             slint::TimerMode::Repeated,
             Duration::from_millis(16),
             move || {
+                let mut locked_cpu = cpu.lock().unwrap();
+                let buf = locked_cpu.display;
+                locked_cpu.update_timers();
+
+                let should_play = locked_cpu.sound_timer > 0;
+
+                if should_play != is_playing {
+                    if should_play {
+                        sink.borrow_mut().play();
+                        is_playing = true;
+                    } else {
+                        sink.borrow_mut().pause();
+                        is_playing = false;
+                    }
+                }
+
                 let s = shared_for_timer.borrow().clone();
-                let buf = dummy_framebuffer();
                 let image = convert_framebuffer(&buf, s.fg_color, s.bg_color, 4);
                 if let Some(ui) = ui_weak.upgrade() {
                     ui.set_screen(image);
@@ -291,6 +422,7 @@ impl App {
             ui,
             _games_model: games_model,
             _timer: timer,
+            _stream: stream,
         })
     }
 
