@@ -5,7 +5,7 @@ edition = "2024"
 build = "build.rs"
 
 [dependencies]
-slint = "1.8.0"
+slint = { version = "1.18.1", features = ["unstable-winit-030"] }
 rodio = "0.19.0"
 rand = "0.8"
 rfd = "0.14"
@@ -14,4 +14,4 @@ serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 
 [build-dependencies]
-slint-build = "1.8.0"
+slint-build = "1.18.1"
