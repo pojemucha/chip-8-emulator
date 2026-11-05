@@ -5,6 +5,18 @@ The documentation is based on [Keep a changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-06
+
+### Added
+- Added unit tests for ROM file extension validation and metadata extraction.
+
+### Fixed
+- Resolved external drag-and-drop issues by migrating from Slint's `DropArea` to raw `winit` window events (`DroppedFile`, `HoveredFile`).
+- Added an X11 backend fallback (`WINIT_UNIX_BACKEND=x11`) on Linux to bypass Wayland drag-and-drop limitations in `winit 0.30`.
+
+### Changed
+- Updated Slint to version 1.18.1 with `unstable-winit-30` flag.
+
 ## [1.0.1] - 2026-11-06
 
 ### Changed
