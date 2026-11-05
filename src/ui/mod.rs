@@ -1,3 +1,4 @@
+use slint::winit_030::{EventResult, WinitWindowAccessor, winit::event::WindowEvent};
 use slint::{Color, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, VecModel};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -71,12 +72,24 @@ impl LibraryConfig {
 
 fn extract_rom_metadata(path: &Path) -> Option<RomEntry> {
     let metadata = std::fs::metadata(path).ok()?;
+    if !metadata.is_file() {
+        return None;
+    }
     let title = path.file_stem()?.to_string_lossy().to_string();
+    if title.is_empty() {
+        return None;
+    }
     Some(RomEntry {
         title,
         path: path.to_path_buf(),
         size: metadata.len(),
     })
+}
+
+fn is_valid_rom_extension(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("ch8") || ext.eq_ignore_ascii_case("rom"))
 }
 
 fn format_size(bytes: u64) -> String {
@@ -201,34 +214,52 @@ impl App {
 
         let shared_settings = Rc::new(RefCell::new(config.borrow().settings.clone()));
 
-        ui.on_extract_rom_path(|transfer| {
-            if let Ok(mut paths) = transfer.file_paths()
-                && let Some(path) = paths.next()
-            {
-                let p = path.to_string_lossy();
-                if p.ends_with(".ch8") {
-                    return SharedString::from(p.to_string());
-                }
-            }
-            SharedString::from("")
-        });
+        ui.window().on_winit_window_event({
+            let ui_weak = ui.as_weak();
+            let games_model = games_model.clone();
+            let config = config.clone();
+            move |_window, event| {
+                let Some(ui) = ui_weak.upgrade() else {
+                    return EventResult::Propagate;
+                };
 
-        ui.on_rom_dropped({
-            let model = games_model.clone();
-            let cfg = config.clone();
-            move |path_str| {
-                let path = PathBuf::from(path_str.as_str());
-                if let Some(entry) = extract_rom_metadata(&path)
-                    && !cfg.borrow().roms.iter().any(|r| r.path == path)
-                {
-                    model.push(GameEntry {
-                        title: SharedString::from(entry.title.clone()),
-                        size: SharedString::from(format_size(entry.size)),
-                        icon: slint::Image::default(),
-                    });
-                    cfg.borrow_mut().roms.push(entry);
-                    let _ = cfg.borrow().save();
+                match event {
+                    WindowEvent::HoveredFile(_) => {
+                        ui.set_drag_hovered(true);
+                    }
+                    WindowEvent::HoveredFileCancelled => {
+                        ui.set_drag_hovered(false);
+                    }
+                    WindowEvent::DroppedFile(path) => {
+                        ui.set_drag_hovered(false);
+                        if !ui.get_in_game()
+                            && !ui.get_show_settings()
+                            && is_valid_rom_extension(path)
+                            && !config.borrow().roms.iter().any(|r| r.path == *path)
+                        {
+                            match extract_rom_metadata(path) {
+                                Some(entry) => {
+                                    games_model.push(GameEntry {
+                                        title: SharedString::from(entry.title.clone()),
+                                        size: SharedString::from(format_size(entry.size)),
+                                        icon: slint::Image::default(),
+                                    });
+                                    config.borrow_mut().roms.push(entry);
+                                    let _ = config.borrow().save();
+                                }
+                                None => {
+                                    eprintln!(
+                                        "[DnD] Error: file wasn't found on the path {:?}",
+                                        path
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
                 }
+
+                EventResult::Propagate
             }
         });
 
@@ -428,5 +459,58 @@ impl App {
 
     pub fn run(self) -> Result<(), slint::PlatformError> {
         self.ui.run()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::File;
+    use std::io::Write;
+
+    #[test]
+    fn test_is_valid_rom_extension() {
+        assert!(is_valid_rom_extension(Path::new("game.ch8")));
+        assert!(is_valid_rom_extension(Path::new("GAME.CH8")));
+        assert!(is_valid_rom_extension(Path::new("game.rom")));
+        assert!(is_valid_rom_extension(Path::new("GAME.ROM")));
+        assert!(is_valid_rom_extension(Path::new("/path/to/game.ch8")));
+
+        assert!(!is_valid_rom_extension(Path::new("game.txt")));
+        assert!(!is_valid_rom_extension(Path::new("game.bin")));
+        assert!(!is_valid_rom_extension(Path::new("game")));
+        assert!(!is_valid_rom_extension(Path::new("")));
+    }
+
+    #[test]
+    fn test_format_size() {
+        assert_eq!(format_size(0), "0 B");
+        assert_eq!(format_size(512), "512 B");
+        assert_eq!(format_size(1023), "1023 B");
+        assert_eq!(format_size(1024), "1.0 KB");
+        assert_eq!(format_size(2048), "2.0 KB");
+    }
+
+    #[test]
+    fn test_extract_rom_metadata() {
+        let nonexistent = Path::new("nonexistent_file_12345.ch8");
+        assert!(extract_rom_metadata(nonexistent).is_none());
+
+        let temp_dir = std::env::temp_dir();
+        // A directory should not be accepted as a ROM file
+        assert!(extract_rom_metadata(&temp_dir).is_none());
+
+        let temp_file_path = temp_dir.join("test_pong_game.ch8");
+        {
+            let mut file = File::create(&temp_file_path).unwrap();
+            file.write_all(b"CHIP8").unwrap();
+        }
+
+        let entry = extract_rom_metadata(&temp_file_path).expect("Should extract metadata");
+        assert_eq!(entry.title, "test_pong_game");
+        assert_eq!(entry.size, 5);
+        assert_eq!(entry.path, temp_file_path);
+
+        let _ = std::fs::remove_file(&temp_file_path);
     }
 }
