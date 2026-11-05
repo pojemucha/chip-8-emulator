@@ -5,6 +5,15 @@ The documentation is based on [Keep a changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-06
+
+### Changed
+- Updated `README.md`: added build and run instructions (Windows/Linux), keyboard layout mapping, and updated repository links.
+- Migrated the CI/CD pipeline to GitHub Actions.
+
+### Removed
+- Removed the old GitLab CI configuration file (`.gitlab-ci.yml`) due to the project migration.
+
 ## [1.0.0] - 2026-10-30
 
 ### Added
