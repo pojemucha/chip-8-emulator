@@ -61,7 +61,7 @@ impl Cpu {
 
         chip8
     }
-    
+
     pub fn clear(&mut self) {
         *self = Self::new();
     }
