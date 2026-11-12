@@ -5,6 +5,25 @@ The documentation is based on [Keep a changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-12
+
+### Added
+- Implemented `Default` trait for `Cpu`.
+- Added comprehensive unit tests for memory operations (`FX55`, `FX65`), bitwise logic (`8XY1`–`8XY3`), bit shifts (`8XY6`, `8XYE`), subtraction (`8XY5`, `8XY7`), `VF` flag overwrite edge cases, stack limits, and invalid key/font lookups.
+
+### Changed
+- **Breaking:** Changed `Cpu::execute` signature to return `io::Result<()>` instead of `()` and propagated execution errors in `Cpu::tick`.
+- **Breaking:** Converted `Cpu::decode` into an associated function (removed unused `&self` receiver).
+- Simplified `Cpu::clear` by reusing `Cpu::new()`.
+- Aligned CPU instruction behavior with the original COSMAC VIP specification:
+  - `8XY1` (OR), `8XY2` (AND), and `8XY3` (XOR) now reset the `VF` flag register to `0`.
+  - `8XY6` and `8XYE` shift instructions now copy `VY` into `VX` before performing the shift.
+
+### Fixed
+- Prevented stack overflow in `2NNN` (`CALL`) when `sp >= 16` and stack underflow in `00EE` (`RET`) when `sp == 0`.
+- Prevented out-of-bounds memory panics in `DXYN`, `FX33`, `FX55`, and `FX65` when index register `I` approaches memory limits.
+- Added bounds validation for keypad state checks (`EX9E`, `EXA1`), font character lookups (`FX29` for values `> 0xF`), and unknown opcodes.
+
 ## [1.0.2] - 2026-11-06
 
 ### Added
