@@ -654,4 +654,59 @@ mod tests {
 
         let _ = std::fs::remove_file(&temp_file_path);
     }
+
+    #[test]
+    fn test_legacy_config_migration() {
+        let legacy_json = r#"{
+            "roms": [],
+            "settings": {
+                "clock_frequency": 500,
+                "fg_color": [255, 255, 255],
+                "bg_color": [0, 0, 0]
+            }
+        }"#;
+
+        let config: LibraryConfig = serde_json::from_str(legacy_json).unwrap();
+
+        assert_eq!(config.settings.clock_frequency, 500);
+        assert_eq!(config.settings.fg_color, [255, 255, 255]);
+        assert_eq!(config.settings.bg_color, [0, 0, 0]);
+
+        assert!(config.settings.show_icons);
+        assert!(!config.settings.show_all);
+    }
+
+    #[test]
+    fn test_preview_from_path() {
+        assert!(PreviewInstance::from_path(Path::new("no_such_rom_12345.ch8")).is_none());
+
+        let temp_dir = std::env::temp_dir();
+
+        let ok_path = temp_dir.join("test_preview_ok.ch8");
+        std::fs::write(&ok_path, [0x00, 0xE0]).unwrap();
+        let ok_preview = PreviewInstance::from_path(&ok_path).unwrap();
+
+        assert!(!ok_preview.halted);
+
+        let _ = std::fs::remove_file(&ok_path);
+
+        let big_path = temp_dir.join("test_preview_big.ch8");
+        std::fs::write(&big_path, vec![0u8; 3585]).unwrap();
+        let big_preview = PreviewInstance::from_path(&big_path).unwrap();
+
+        assert!(big_preview.halted);
+
+        let _ = std::fs::remove_file(&big_path);
+    }
+
+    #[test]
+    fn test_map_key() {
+        assert_eq!(map_key("q"), Some(0x4));
+        assert_eq!(map_key("Q"), Some(0x4));
+        assert_eq!(map_key("й"), Some(0x4));
+        assert_eq!(map_key("Й"), Some(0x4));
+        assert_eq!(map_key("x"), Some(0x0));
+        assert_eq!(map_key("ч"), Some(0x0));
+        assert_eq!(map_key(" "), None);
+    }
 }
