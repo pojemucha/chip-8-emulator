@@ -5,6 +5,18 @@ The documentation is based on [Keep a changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-11-21
+
+### Added
+- Added `cargo test` execution to the GitHub Actions CI pipeline.
+
+### Changed
+- Restructured `README.md` into separate *Download from Releases* (with Linux/macOS execution instructions) and *Build from Source* (with Linux system dependencies) sections; documented `.rom` support and preview settings.
+
+### Fixed
+- Fixed release artifact naming in CI by renaming binaries (`chip8-linux`, `chip8-windows.exe`, `chip8-macos`) prior to upload so Linux and macOS builds no longer overwrite each other.
+- Corrected local binary names (`./chip8`, `./chip8.exe`) and typos in `README.md`.
+
 ## [2.1.0] - 2026-11-21
 
 ### Added
