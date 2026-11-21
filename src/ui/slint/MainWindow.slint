@@ -21,13 +21,18 @@ export component MainWindow inherits Window {
     in-out property <color> settings-bg: #1e1e2e;
     in-out property <color> fg-color: #cdd6f4;
 
+    in-out property <bool> show-icons: true;
+    in-out property <bool> show-all: false;
+
     callback settings-clicked;
     callback browse-rom-clicked;
     callback game-selected(string);
     callback back-to-launcher;
     callback press-key(string);
     callback release-key(string);
-    callback save-settings(int, color, color);
+    callback save-settings(int, color, color, bool, bool);
+
+    callback game-hovered(int);
 
     VerticalLayout {
         Rectangle {
@@ -71,7 +76,7 @@ export component MainWindow inherits Window {
                 HorizontalLayout {
                     spacing: 8px;
 
-                    Rectangle {
+                    if !root.in-game:  Rectangle {
                         width: 100px;
                         height: 32px;
                         border-radius: 4px;
@@ -115,7 +120,10 @@ export component MainWindow inherits Window {
         Rectangle {
             if !root.in-game: LauncherView {
                 games: root.games;
-                game-selected(title) => { root.game-selected(title); }
+                show-preview: root.show-icons;
+                force-open: root.show-all && root.show-icons;
+                game-selected(title)    => { root.game-selected(title); }
+                game-hovered(idx)       => { root.game-hovered(idx); }
             }
 
             if root.in-game: EmulatorView {
@@ -144,10 +152,12 @@ export component MainWindow inherits Window {
             clock-frequency: root.settings-clock;
             fg-color: root.settings-fg;
             bg-color: root.settings-bg;
+            show-icons: root.show-icons;
+            show-all: root.show-all;
 
-            save-settings(freq, fg, bg) => {
+            save-settings(freq, fg, bg, show-icons, show-all) => {
                 root.show-settings = false;
-                root.save-settings(freq, fg, bg);
+                root.save-settings(freq, fg, bg, show-icons, show-all);
             }
             cancel-settings => {
                 root.show-settings = false;
