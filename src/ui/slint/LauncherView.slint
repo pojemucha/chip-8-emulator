@@ -4,12 +4,17 @@ export struct GameEntry {
     title: string,
     size: string,
     icon: image,
+    card-color: color,
 }
 
 export component LauncherView inherits Rectangle {
     in property <[GameEntry]> games;
-    callback game-selected(string);
+    in property <bool> show-preview: true;
+    in property <bool> force-open: false;
 
+    callback game-selected(string);
+    callback game-hovered(int);
+    
     Flickable {
         content-width: self.width;
         content-height: layout.preferred-height;
@@ -17,15 +22,22 @@ export component LauncherView inherits Rectangle {
         layout := FlexboxLayout {
             spacing: 16px;
             padding: 16px;
-            flex-wrap: wrap;
 
-            for game in root.games: GameCard {
+            for game[idx] in root.games: GameCard {
                 title: game.title;
                 size: game.size;
                 icon: game.icon;
-                width: 180px;
-                height: 220px;
+                card-color: game.card-color;
+                show-preview: root.show-preview;
+                force-open: root.force-open;
+                viewport-width: root.width;
+
+                z: self.is-hovered ? 100 : (self.is-closing ? 50 : 1);
+
                 clicked => { root.game-selected(game.title); }
+                hovered(h) => {
+                    root.game-hovered(h ? idx : -1);
+                }
             }
         }
     }

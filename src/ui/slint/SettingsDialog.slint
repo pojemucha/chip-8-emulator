@@ -4,8 +4,10 @@ export component SettingsDialog inherits Rectangle {
     in-out property <int> clock-frequency: 700;
     in-out property <color> fg-color: #cdd6f4;
     in-out property <color> bg-color: #1e1e2e;
+    in-out property <bool> show-icons: true;
+    in-out property <bool> show-all: false;
 
-    callback save-settings(int, color, color);
+    callback save-settings(int, color, color, bool, bool);
     callback cancel-settings();
 
     width: 480px;
@@ -28,13 +30,18 @@ export component SettingsDialog inherits Rectangle {
 
     VerticalLayout {
         padding: 20px;
-        spacing: 16px;
+        spacing: 14px;
 
         Text {
             text: "Settings";
             color: #cdd6f4;
             font-size: 18px;
             font-weight: 700;
+        }
+
+        Rectangle {
+            height: 1px;
+            background: #45475a;
         }
 
         VerticalLayout {
@@ -50,6 +57,11 @@ export component SettingsDialog inherits Rectangle {
                 value: root.clock-frequency;
                 changed => { root.clock-frequency = self.value; }
             }
+        }
+
+        Rectangle {
+            height: 1px;
+            background: #45475a;
         }
 
         VerticalLayout {
@@ -75,13 +87,20 @@ export component SettingsDialog inherits Rectangle {
             }
         }
 
+        Rectangle {
+            height: 1px;
+            background: #45475a;
+        }
+
         VerticalLayout {
             spacing: 6px;
+
             Text {
                 text: "Background Color";
                 color: #cdd6f4;
                 font-size: 14px;
             }
+
             HorizontalLayout {
                 spacing: 6px;
                 for c in root.bg-palette: Rectangle {
@@ -93,6 +112,86 @@ export component SettingsDialog inherits Rectangle {
                     border-color: root.bg-color == c ? #cdd6f4 : #585b70;
                     TouchArea {
                         clicked => { root.bg-color = c; }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            background: #45475a;
+        }
+
+        VerticalLayout {
+            spacing: 10px;
+
+            HorizontalLayout {
+                alignment: space-between;
+                Text {
+                    text: "Game Previews";
+                    color: #cdd6f4;
+                    font-size: 14px;
+                    vertical-alignment: center;
+                }
+
+                Rectangle {
+                    width: 48px;
+                    height: 24px;
+                    border-radius: 12px;
+                    background: root.show-icons ? #74c7ec : #313244;
+                    border-width: 1px;
+                    border-color: #585b70;
+                    Rectangle {
+                        width: 18px;
+                        height: 18px;
+                        border-radius: 9px;
+                        x: root.show-icons ? 26px : 4px;
+                        y: 3px;
+                        background: root.show-icons ? #1e1e2e : #cdd6f4;
+                    }
+                    TouchArea {
+                        clicked => { root.show-icons = !root.show-icons; }
+                    }
+                }
+            }
+
+            Rectangle {
+                height: 28px;
+                if root.show-icons: HorizontalLayout {
+                    spacing: 8px;
+                    Rectangle {
+                        height: 28px;
+                        border-radius: 4px;
+                        background: !root.show-all ? #45475a : #313244;
+                        border-width: !root.show-all ? 2px : 1px;
+                        border-color: !root.show-all ? #74c7ec : #585b70;
+                        Text {
+                            text: "On Hover";
+                            color: #cdd6f4;
+                            font-size: 13px;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                        TouchArea {
+                            clicked => { root.show-all = false; }
+                        }
+                    }
+                    Rectangle {
+                        height: 28px;
+                        border-radius: 4px;
+                        background: root.show-all ? #45475a : #313244;
+                        border-width: root.show-all ? 2px : 1px;
+                        border-color: root.show-all ? #74c7ec : #585b70;
+                        Text {
+                            text: "Show All";
+                            color: #cdd6f4;
+                            font-size: 13px;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                        TouchArea {
+                            clicked => { root.show-all = true; }
+                        }
                     }
                 }
             }
@@ -125,7 +224,7 @@ export component SettingsDialog inherits Rectangle {
                 }
                 save-touch := TouchArea {
                     clicked => {
-                        root.save-settings(root.clock-frequency, root.fg-color, root.bg-color);
+                        root.save-settings(root.clock-frequency, root.fg-color, root.bg-color, root.show-icons, root.show-all);
                     }
                 }
             }
