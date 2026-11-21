@@ -5,6 +5,27 @@ The documentation is based on [Keep a changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-21
+
+### Added
+- Redesigned library game cards (`GameCard.slint`) as retro cartridges with randomized Catppuccin colors, animated expand/collapse transitions, pixelated 2:1 live preview screens, and expanding title labels with right-edge viewport clamping.
+- Added `Game Previews` toggle and display mode selector (`On Hover` / `Show All`) to `SettingsDialog`, persisted in `library.json` (`show_icons`, `show_all`) with `#[serde(default)]` migration support.
+- Added lazy-initialized `PreviewInstance`s for running live ROM previews in the launcher.
+- Added unit tests for legacy config migration, preview loading (`PreviewInstance::from_path`), and keyboard layout mapping (`map_key`).
+
+### Changed
+- Refactored UI emulation and audio playback into a unified `EmulatorState` driven by a single 60 Hz `slint::Timer`, removing the separate background CPU thread and `Arc<Mutex>` synchronization.
+- Simplified `map_key` by merging QWERTY and ЙЦУКЕН match arms.
+- Expanded the file dialog ROM filter to accept both `.ch8` and `.rom` extensions.
+
+### Fixed
+- Hidden the `Import ROM` button and disabled drag-and-drop hover highlighting while in-game or viewing settings.
+- Paused active CPU execution and audio playback when opening the settings modal, encountering a CPU execution error, or returning to the library.
+- Prevented hovered preview state from sticking after launching a game and fixed card z-order during close animations.
+
+### Removed
+- Removed the unused legacy `src/ui/app.slint` file.
+
 ## [2.0.0] - 2026-11-12
 
 ### Added
