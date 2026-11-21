@@ -18,6 +18,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev libasound2-dev
+      - name: Run tests
+        run: cargo test
       - name: Check formatting
         run: cargo fmt -- --check
       - name: Run Clippy
@@ -50,11 +52,15 @@ jobs:
       - name: Build release
         run: cargo build --release
 
+      - name: Rename binaries
+        shell: bash
+        run: mv "target/release/${{ matrix.binary_name }}" "target/release/${{ matrix.release_name }}"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.release_name }}
-          path: target/release/${{ matrix.binary_name }}
+          path: target/release/${{ matrix.release_name }}
 
   publish_release:
     name: Create GitHub Release
